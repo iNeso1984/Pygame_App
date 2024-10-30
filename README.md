@@ -1,6 +1,6 @@
 # Basic Pygame Project (WIP)
 
-This is a Work-in-Progress basic Pygame project demonstrating how to create a simple game with character movement and a background image I am working on for fun with my daughter.
+This is a work-in-progress basic Pygame project demonstrating how to create a simple game with character movement and a background image I am working on for fun with my daughter.
 
 ### Prerequisites
 
