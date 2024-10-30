@@ -4,11 +4,11 @@ This is a Work-in-Progress basic Pygame project demonstrating how to create a si
 
 ### Prerequisites
 
-- **Python**: Ensure you have Python installed. Verify by running:
+**Python**: Ensure you have Python installed. Verify by running:
   ```bash
   python --version
 ```
-- **Install Pygames**:
+**Install Pygames**:
 ```
 pip install pygame
 ```
