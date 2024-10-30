@@ -13,10 +13,9 @@ This is a Work-in-Progress basic Pygame project demonstrating how to create a si
 pip install pygame
 ```
 
-
 ### How to Run:
-- Create a folder and Use git clone in terminal 
- within created folder, or download directly in GitHub.
+- Create a folder and use git clone in the terminal 
+ after navigating to created folder, or download directly from GitHub into desired folder.
 ```
 git clone https://github.com/iNeso1984/Pygame_App.git
 ```
