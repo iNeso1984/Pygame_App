@@ -8,7 +8,7 @@ w_width = 500
 w_height = 500
 screen = pygame.display.set_mode((w_width, w_height))
 screen.fill((255, 0, 0))  # Fill screen with red using RGB values
-pygame.display.set_caption("Collision detection")
+pygame.display.set_caption("Health state")
 
 clock = pygame.time.Clock()
 
@@ -20,6 +20,8 @@ walkLeft = [pygame.image.load(f'soldier/L{i}.png') for i in range(1, 10)]
 char = pygame.image.load('soldier/standing.png')
 moveLeft = [pygame.image.load(f'enemy/L{i}.png') for i in range(1, 10)]
 moveRight = [pygame.image.load(f'enemy/R{i}.png') for i in range(1, 10)]
+font = pygame.font.SysFont("helvetica", 30, 1, 1)
+score = 0
 
 class Player:
     def __init__(self, x, y, width, height):
@@ -27,7 +29,7 @@ class Player:
         self.y = y
         self.width = width
         self.height = height
-        self.vel = 5
+        self.vel = 4
         self.is_jump = False
         self.jump_count = 10
         self.left = False
@@ -36,10 +38,11 @@ class Player:
         self.standing = True
         self.hitbox = (self.x, self.y, self.width, self.height)
         self.hit = pygame.Rect(self.hitbox)
+       
 
     def draw(self, screen):
-        if self.walkCount + 1 >= 27:
-            self.walkCount = 0
+       
+       
 
         if not self.standing:
             if self.left:
@@ -56,7 +59,7 @@ class Player:
 
         self.hitbox = (self.x, self.y, self.width, self.height)
         self.hit = pygame.Rect(self.hitbox)
-
+        
 class Projectile:
     def __init__(self, x, y, radius, color, direction):
         self.x = x
@@ -80,19 +83,25 @@ class Enemy:
         self.path = [x, end]
         self.hitbox = (self.x + 20, self.y, self.width - 40, self.height - 4)
         self.hit = pygame.Rect(self.hitbox)
+        self.health = 9
+        self.visible = True
 
     def draw(self, screen):
-        if self.walkCount + 1 >= 27:
-            self.walkCount = 0
+        self.move()
+        if self.visible:
+            if self.walkCount + 1 >= 27:
+                self.walkCount = 0
 
-        if self.vel > 0:
-            screen.blit(moveRight[self.walkCount // 3], (self.x, self.y))
-        else:
-            screen.blit(moveLeft[self.walkCount // 3], (self.x, self.y))
+            if self.vel > 0:
+                screen.blit(moveRight[self.walkCount // 3], (self.x, self.y))
+            else:
+                screen.blit(moveLeft[self.walkCount // 3], (self.x, self.y))
 
-        self.walkCount += 1
-        self.hitbox = (self.x + 20, self.y, self.width - 40, self.height - 4)
-        self.hit = pygame.Rect(self.hitbox)
+            self.walkCount += 1
+            self.hitbox = (self.x + 20, self.y, self.width - 40, self.height - 4)
+            self.hit = pygame.Rect(self.hitbox)
+            pygame.draw.rect(screen,"grey",(self.hitbox[0], self.hitbox[1]+3, 50, 10),0)
+            pygame.draw.rect(screen, "green", (self.hitbox[0], self.hitbox[1] + 3, 50 * (self.health / 9), 10), 0)
 
     def move(self):
         if self.vel > 0:
@@ -108,20 +117,29 @@ class Enemy:
                 self.vel = -self.vel
                 self.walkCount = 0
 
+    def touch(self):
+        if self.health > 0:
+            self.health -= 1
+        else:
+            self.visible = False
+
+
 def DrawInGameloop():
     screen.blit(bg_img, (0, 0))
     soldier.draw(screen)
+    text = font.render("Score : " + str(score), 1, "red")
+    screen.blit(text, (0,10))
     enemy.draw(screen)
     for bullet in bullets:
         bullet.draw(screen)
     pygame.display.flip()
 
-soldier = Player(50, 435, 64, 64)
-enemy = Enemy(0, 410, 64, 64, w_width)
+soldier = Player(210, 435, 64, 64)
+enemy = Enemy(0, w_height - 64, 64, 64, w_width)
 bullets = []
 shoot = 0
 done = True
-
+shoot_cooldown=0
 while done:
     clock.tick(27)
     for event in pygame.event.get():
@@ -133,13 +151,20 @@ while done:
 
     if shoot > 0:
         shoot += 1
-    if shoot > 3:
+    if shoot > 3: 
         shoot = 0
+
+    # Decrement shoot_cooldown
+    if shoot_cooldown > 0:
+        shoot_cooldown -= 1
 
     for bullet in bullets[:]:
         if bullet.y - bullet.radius < enemy.hitbox[1] + enemy.hitbox[3] and bullet.y + bullet.radius > enemy.hitbox[1]:
             if bullet.x + bullet.radius > enemy.hitbox[0] and bullet.x - bullet.radius < enemy.hitbox[0] + enemy.hitbox[2]:
                 bullets.remove(bullet)
+                score += 1
+                enemy.touch()
+
             elif 0 < bullet.x < w_width:
                 bullet.x += bullet.vel
             else:
@@ -147,12 +172,13 @@ while done:
 
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_SPACE]:
+    if keys[pygame.K_SPACE] and shoot_cooldown == 0:
         direction = -1 if soldier.left else 1
         if len(bullets) < 5:
-            bullets.append(Projectile(soldier.x + soldier.width // 2, soldier.y + soldier.height // 2, 6, (0, 0, 0), direction))
+            bullets.append(Projectile(soldier.x + soldier.width // 2, soldier.y + soldier.height // 2, 8, (0, 0, 0), direction))
+        shoot_cooldown = 10  # Cooldown frames (adjust this value as needed)
 
-    if keys[pygame.K_LEFT] and soldier.x > 0:
+    if keys[pygame.K_LEFT] and soldier.x > 0: 
         soldier.x -= soldier.vel
         soldier.left = True
         soldier.right = False

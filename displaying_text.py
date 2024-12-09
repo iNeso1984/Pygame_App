@@ -8,7 +8,7 @@ w_width = 500
 w_height = 500
 screen = pygame.display.set_mode((w_width, w_height))
 screen.fill((255, 0, 0))  # Fill screen with red using RGB values
-pygame.display.set_caption("Collision detection")
+pygame.display.set_caption("displaying text")
 
 clock = pygame.time.Clock()
 
@@ -20,6 +20,8 @@ walkLeft = [pygame.image.load(f'soldier/L{i}.png') for i in range(1, 10)]
 char = pygame.image.load('soldier/standing.png')
 moveLeft = [pygame.image.load(f'enemy/L{i}.png') for i in range(1, 10)]
 moveRight = [pygame.image.load(f'enemy/R{i}.png') for i in range(1, 10)]
+font = pygame.font.SysFont("helvetica", 30, 1, 1)
+score = 0
 
 class Player:
     def __init__(self, x, y, width, height):
@@ -111,13 +113,15 @@ class Enemy:
 def DrawInGameloop():
     screen.blit(bg_img, (0, 0))
     soldier.draw(screen)
+    text = font.render("Score : " + str(score), 1, "red")
+    screen.blit(text, (0,10))
     enemy.draw(screen)
     for bullet in bullets:
         bullet.draw(screen)
     pygame.display.flip()
 
-soldier = Player(50, 435, 64, 64)
-enemy = Enemy(0, 410, 64, 64, w_width)
+soldier = Player(210, 435, 64, 64)
+enemy = Enemy(0, w_height - 64, 64, 64, w_width)
 bullets = []
 shoot = 0
 done = True
@@ -140,6 +144,8 @@ while done:
         if bullet.y - bullet.radius < enemy.hitbox[1] + enemy.hitbox[3] and bullet.y + bullet.radius > enemy.hitbox[1]:
             if bullet.x + bullet.radius > enemy.hitbox[0] and bullet.x - bullet.radius < enemy.hitbox[0] + enemy.hitbox[2]:
                 bullets.remove(bullet)
+                score += 1
+
             elif 0 < bullet.x < w_width:
                 bullet.x += bullet.vel
             else:
