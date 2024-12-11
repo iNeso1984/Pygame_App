@@ -26,7 +26,11 @@ bulletsound = pygame.mixer.Sound("sounds/Bulletsound.mp3")
 hitsound = pygame.mixer.Sound("sounds/Hit.mp3")
 music = pygame.mixer.music.load("sounds/music.mp3")
 pygame.mixer.music.play(-1)
-pygame.mixer.music.set_volume(0.2)
+
+pygame.mixer.music.set_volume(2)
+
+
+
 
 class Player:
     def __init__(self, x, y, width, height):
@@ -53,8 +57,7 @@ class Player:
                 screen.blit(walkRight[self.walkCount // 3], (self.x, self.y))
                 self.walkCount += 1
 
-            # Reset walkCount to avoid exceeding index range
-            if self.walkCount >= len(walkLeft) * 3:  # Multiply by 3 because of "// 3"
+            if self.walkCount >= len(walkLeft) * 3:
                 self.walkCount = 0
         else:
             if self.right:
@@ -76,7 +79,7 @@ class Projectile:
         self.x = x
         self.y = y
         self.radius = radius
-        self.color = color
+        self.color = (50, 50, 50)  # Dark grey color
         self.direction = direction
         self.vel = 8 * direction
 
@@ -111,7 +114,7 @@ class Enemy:
             self.walkCount += 1
             self.hitbox = (self.x + 20, self.y, self.width - 40, self.height - 4)
             self.hit = pygame.Rect(self.hitbox)
-            pygame.draw.rect(screen,"grey",(self.hitbox[0], self.hitbox[1]+3, 50, 10),0)
+            pygame.draw.rect(screen, "grey", (self.hitbox[0], self.hitbox[1] + 3, 50, 10), 0)
             pygame.draw.rect(screen, "green", (self.hitbox[0], self.hitbox[1] + 3, 50 * (self.health / 9), 10), 0)
 
     def move(self):
@@ -135,15 +138,22 @@ class Enemy:
         else:
             self.visible = False
 
-def DrawInGameloop():
+def draw_in_game_loop():
     screen.blit(bg_img, (0, 0))
     soldier.draw(screen)
     text = font.render("Score : " + str(score), 1, "red")
-    screen.blit(text, (0,10))
+    screen.blit(text, (0, 10))
     enemy.draw(screen)
     for bullet in bullets:
         bullet.draw(screen)
     pygame.display.flip()
+
+def restart_game():
+    global soldier, enemy, bullets, score
+    soldier = Player(210, 435, 64, 64)
+    enemy = Enemy(0, w_height - 64, 64, 64, w_width)
+    bullets = []
+    score = 0
 
 soldier = Player(210, 435, 64, 64)
 enemy = Enemy(0, w_height - 64, 64, 64, w_width)
@@ -157,6 +167,32 @@ while done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = False
+
+    if score >= 10:
+        screen.fill((0, 0, 139))
+        win_text = font.render("You Win! Press R to Restart", True, "white")
+        screen.blit(win_text, (w_width // 2 - win_text.get_width() // 2, w_height // 2))
+        pygame.display.update()
+     
+      
+
+        #Stop the original music and play the victory music
+        if not pygame.mixer.music.get_busy():  # Ensure music2 only starts once
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load("sounds/music2.mp3")
+            pygame.mixer.music.play(-1)
+            pygame.mixer.music.set_volume(2)
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_r]:
+            # Restart the game and play the original music
+            restart_game()
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load("sounds/music.mp3")
+            pygame.mixer.music.play(-1)
+        continue
+
+
     if enemy.visible:
         if soldier.hit.colliderect(enemy.hit):
             enemy.vel = enemy.vel * -1
@@ -167,19 +203,16 @@ while done:
     if shoot > 3:
         shoot = 0
 
-    # Decrement shoot_cooldown
     if shoot_cooldown > 0:
         shoot_cooldown -= 1
 
     for bullet in bullets[:]:
-        # Check collision with the enemy
         if enemy.visible and bullet.y - bullet.radius < enemy.hitbox[1] + enemy.hitbox[3] and bullet.y + bullet.radius > enemy.hitbox[1]:
             if bullet.x + bullet.radius > enemy.hitbox[0] and bullet.x - bullet.radius < enemy.hitbox[0] + enemy.hitbox[2]:
                 bullets.remove(bullet)
                 score += 1
                 enemy.touch()
-        
-        # Move the bullet if it's still on screen
+
         if 0 < bullet.x < w_width:
             bullet.x += bullet.vel
         else:
@@ -187,19 +220,13 @@ while done:
 
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_SPACE] and shoot_cooldown == 0:
-        bulletsound.play()
-        direction = -1 if soldier.left else 1
-        if len(bullets) < 5:
-            bullets.append(Projectile(soldier.x + soldier.width // 2, soldier.y + soldier.height // 2, 8, (0, 0, 0), direction))
-        shoot_cooldown = 10  # Cooldown frames (adjust this value as needed)
-
-    if keys[pygame.K_LEFT] and soldier.x > 0: 
+    # Movement logic
+    if keys[pygame.K_LEFT] and soldier.x - soldier.vel > 0:
         soldier.x -= soldier.vel
         soldier.left = True
         soldier.right = False
         soldier.standing = False
-    elif keys[pygame.K_RIGHT] and soldier.x < w_width - soldier.width:
+    elif keys[pygame.K_RIGHT] and soldier.x + soldier.vel + soldier.width < w_width:
         soldier.x += soldier.vel
         soldier.right = True
         soldier.left = False
@@ -211,17 +238,30 @@ while done:
     if not soldier.is_jump:
         if keys[pygame.K_UP]:
             soldier.is_jump = True
-            soldier.right = False
             soldier.left = False
+            soldier.right = False
+            soldier.walkCount = 0
     else:
         if soldier.jump_count >= -10:
-            neg = 1 if soldier.jump_count > 0 else -1
+            neg = 1
+            if soldier.jump_count < 0:
+                neg = -1
             soldier.y -= (soldier.jump_count ** 2) * 0.5 * neg
             soldier.jump_count -= 1
         else:
             soldier.is_jump = False
             soldier.jump_count = 10
 
-    DrawInGameloop()
+    if keys[pygame.K_SPACE] and shoot_cooldown == 0:
+        bulletsound.play()
+        if soldier.left:
+            direction = -1
+        else:
+            direction = 1
+        bullets.append(Projectile(round(soldier.x + soldier.width // 2), round(soldier.y + soldier.height // 2), 6, (
+50, 50, 50), direction))
+        shoot_cooldown = 10
+
+    draw_in_game_loop()
 
 pygame.quit()
