@@ -8,7 +8,7 @@ w_width = 500
 w_height = 500
 screen = pygame.display.set_mode((w_width, w_height))
 screen.fill((255, 0, 0))  # Fill screen with red using RGB values
-pygame.display.set_caption("Health state")
+pygame.display.set_caption("Sharpshooter")
 
 clock = pygame.time.Clock()
 
@@ -22,6 +22,11 @@ moveLeft = [pygame.image.load(f'enemy/L{i}.png') for i in range(1, 10)]
 moveRight = [pygame.image.load(f'enemy/R{i}.png') for i in range(1, 10)]
 font = pygame.font.SysFont("helvetica", 30, 1, 1)
 score = 0
+bulletsound = pygame.mixer.Sound("sounds/Bulletsound.mp3")
+hitsound = pygame.mixer.Sound("sounds/Hit.mp3")
+music = pygame.mixer.music.load("sounds/music.mp3")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(0.2)
 
 class Player:
     def __init__(self, x, y, width, height):
@@ -63,6 +68,8 @@ class Player:
     def touch(self):
         self.x = 0
         self.y = w_height - self.height
+        self.is_jump = False
+        self.jump_count = 10
 
 class Projectile:
     def __init__(self, x, y, radius, color, direction):
@@ -122,6 +129,7 @@ class Enemy:
                 self.walkCount = 0
 
     def touch(self):
+        hitsound.play()
         if self.health > 0:
             self.health -= 1
         else:
@@ -164,21 +172,23 @@ while done:
         shoot_cooldown -= 1
 
     for bullet in bullets[:]:
-        if enemy.visible:
-            if bullet.y - bullet.radius < enemy.hitbox[1] + enemy.hitbox[3] and bullet.y + bullet.radius > enemy.hitbox[1]:
-                if bullet.x + bullet.radius > enemy.hitbox[0] and bullet.x - bullet.radius < enemy.hitbox[0] + enemy.hitbox[2]:
-                    bullets.remove(bullet)
-                    score += 1
-                    enemy.touch()
-
-                elif 0 < bullet.x < w_width:
-                    bullet.x += bullet.vel
-                else:
-                    bullets.remove(bullet)
+        # Check collision with the enemy
+        if enemy.visible and bullet.y - bullet.radius < enemy.hitbox[1] + enemy.hitbox[3] and bullet.y + bullet.radius > enemy.hitbox[1]:
+            if bullet.x + bullet.radius > enemy.hitbox[0] and bullet.x - bullet.radius < enemy.hitbox[0] + enemy.hitbox[2]:
+                bullets.remove(bullet)
+                score += 1
+                enemy.touch()
+        
+        # Move the bullet if it's still on screen
+        if 0 < bullet.x < w_width:
+            bullet.x += bullet.vel
+        else:
+            bullets.remove(bullet)
 
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_SPACE] and shoot_cooldown == 0:
+        bulletsound.play()
         direction = -1 if soldier.left else 1
         if len(bullets) < 5:
             bullets.append(Projectile(soldier.x + soldier.width // 2, soldier.y + soldier.height // 2, 8, (0, 0, 0), direction))
